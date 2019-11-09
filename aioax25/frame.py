@@ -15,8 +15,6 @@ class AX25Frame(object):
     Base class for AX.25 frames.
     """
 
-    POLL_FINAL  = 0b00010000
-
     CONTROL_I_MASK  = 0b00000001
     CONTROL_I_VAL   = 0b00000000
     CONTROL_US_MASK = 0b00000011
@@ -48,39 +46,28 @@ class AX25Frame(object):
         if not data:
             raise ValueError('Insufficient packet data')
 
-        # Next should be the control field
+        # Next should be the control field.  Control field
+        # can be either 8 or 16-bits, we don't know at this point.
+        # We'll look at the first 8-bits to see if it's a U-frame
+        # since that has a defined bit pattern we can look for.
         control = data[0]
-        data = data[1:]
 
-        if (control & cls.CONTROL_I_MASK) == cls.CONTROL_I_VAL:
-            # This is an I frame - TODO
-            #return AX25InformationFrame.decode(header, control, data)
+        if (control & cls.CONTROL_US_MASK) == cls.CONTROL_U_VAL:
+            # This is a U frame.  Data starts after the control byte
+            # which can only be 8-bits wide.
+            return AX25UnnumberedFrame.decode(header, control, data[1:])
+        else:
+            # This is either a I or S frame, both of which can either
+            # have a 8-bit or 16-bit control field.  We don't know at
+            # this point so the only safe answer is to return a raw frame
+            # and decode it later.
             return AX25RawFrame(
                     destination=header.destination,
                     source=header.source,
                     repeaters=header.repeaters,
                     cr=header.cr,
-                    control=control,
                     payload=data
             )
-        elif (control & cls.CONTROL_US_MASK) == cls.CONTROL_S_VAL:
-            # This is a S frame - TODO
-            #return AX25SupervisoryFrame.decode(header, control, data)
-            return AX25RawFrame(
-                    destination=header.destination,
-                    source=header.source,
-                    repeaters=header.repeaters,
-                    cr=header.cr,
-                    control=control,
-                    payload=data
-            )
-        elif (control & cls.CONTROL_US_MASK) == cls.CONTROL_U_VAL:
-            # This is a U frame
-            return AX25UnnumberedFrame.decode(header, control, data)
-        else: # pragma: no cover
-            # This should not happen because all possible bit combinations
-            # are covered above.
-            assert False, 'How did we get here?'
 
     def __init__(self, destination, source, repeaters=None,
             cr=False, timestamp=None, deadline=None):
@@ -95,9 +82,6 @@ class AX25Frame(object):
         # Send the addressing header
         for byte in bytes(self.header):
             yield byte
-
-        # Send the control byte
-        yield self._control
 
         # Send the payload
         for byte in self.frame_payload:
@@ -137,13 +121,9 @@ class AX25Frame(object):
         return self._header
 
     @property
-    def control(self):
-        return self._control
-
-    @property
     def frame_payload(self):
         """
-        Return the bytes in the frame payload (following the control byte)
+        Return the bytes in the frame payload (including the control bytes)
         """
         return b''
 
@@ -157,15 +137,71 @@ class AX25Frame(object):
         return clone
 
 
+class AX258BitFrame(AX25Frame):
+    """
+    Base class for AX.25 frames which have a 8-bit control field.
+    """
+
+    POLL_FINAL  = 0b00010000
+
+    def __init__(self, destination, source, repeaters=None,
+            cr=False, timestamp=None, deadline=None):
+        super(AX258BitFrame, self).__init__(
+                destination=destination,
+                source=source,
+                repeaters=repeaters,
+                cr=cr, timestamp=timestamp, deadline=deadline)
+
+    @property
+    def control(self):
+        return self._control
+
+    @property
+    def frame_payload(self):
+        """
+        Return the bytes in the frame payload (including the control byte)
+        """
+        return bytes([self.control])
+
+
+class AX2516BitFrame(AX25Frame):
+    """
+    Base class for AX.25 frames which have a 16-bit control field.
+    """
+
+    POLL_FINAL  = 0b0000000100000000
+
+    def __init__(self, destination, source, repeaters=None,
+            cr=False, timestamp=None, deadline=None):
+        super(AX2516BitFrame, self).__init__(
+                destination=destination,
+                source=source,
+                repeaters=repeaters,
+                cr=cr, timestamp=timestamp, deadline=deadline)
+
+    @property
+    def control(self):
+        return self._control
+
+    @property
+    def frame_payload(self):
+        """
+        Return the bytes in the frame payload (including the control bytes)
+        """
+        return bytes([
+            (self.control >> 8) & 0x00ff,
+            self.control & 0x00ff
+        ])
+
+
 class AX25RawFrame(AX25Frame):
     """
     A representation of a raw AX.25 frame.
     """
 
-    def __init__(self, destination, source, control, repeaters=None,
+    def __init__(self, destination, source, repeaters=None,
             cr=False, payload=None):
         self._header = AX25FrameHeader(destination, source, repeaters, cr)
-        self._control = control
         self._payload = payload or b''
 
     @property
@@ -176,14 +212,13 @@ class AX25RawFrame(AX25Frame):
         return self.__class__(
                 destination=self.header.destination,
                 source=self.header.source,
-                control=self.control,
                 repeaters=self.header.repeaters,
                 cr=self.header.cr,
                 payload=self.frame_payload
         )
 
 
-class AX25UnnumberedFrame(AX25Frame):
+class AX25UnnumberedFrame(AX258BitFrame):
     """
     A representation of an un-numbered frame.
     """
@@ -215,10 +250,11 @@ class AX25UnnumberedFrame(AX25Frame):
         )
 
     def __init__(self, destination, source, modifier,
-            repeaters=None, pf=False, cr=False):
+            repeaters=None, pf=False, cr=False, timestamp=None, deadline=None):
         super(AX25UnnumberedFrame, self).__init__(
                 destination=destination, source=source,
-                repeaters=repeaters, cr=cr)
+                repeaters=repeaters, cr=cr,
+                timestamp=timestamp, deadline=deadline)
         self._pf = bool(pf)
         self._modifier = int(modifier) & self.MODIFIER_MASK
 
@@ -296,7 +332,9 @@ class AX25UnnumberedInformationFrame(AX25UnnumberedFrame):
 
     @property
     def frame_payload(self):
-        return bytearray([self.pid]) + self.payload
+        return super(AX25UnnumberedInformationFrame, self).frame_payload \
+                + bytearray([self.pid]) \
+                + self.payload
 
     def __str__(self):
         return '%s: PID=0x%02x Payload=%r' % (
@@ -384,7 +422,8 @@ class AX25FrameRejectFrame(AX25UnnumberedFrame):
 
     @property
     def frame_payload(self):
-        return bytes(self._gen_frame_payload())
+        return super(AX25FrameRejectFrame, self).frame_payload \
+                + bytes(self._gen_frame_payload())
 
     def _gen_frame_payload(self):
         wxyz = 0
@@ -449,7 +488,6 @@ class AX25FrameRejectFrame(AX25UnnumberedFrame):
                 frmr_control=self.frmr_control,
                 cr=self.header.cr, pf=self.pf
         )
-
 
 # Helper classes
 
