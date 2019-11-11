@@ -228,8 +228,13 @@ class AX25RawFrame(AX25Frame):
     """
 
     def __init__(self, destination, source, repeaters=None,
-            cr=False, payload=None):
-        self._header = AX25FrameHeader(destination, source, repeaters, cr)
+            cr=False, payload=None, timestamp=None, deadline=None):
+        super(AX25RawFrame, self).__init__(
+                destination=destination,
+                source=source,
+                repeaters=repeaters,
+                cr=cr, timestamp=timestamp,
+                deadline=deadline)
         self._payload = payload or b''
 
     @property
