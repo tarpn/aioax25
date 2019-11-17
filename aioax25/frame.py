@@ -1425,7 +1425,7 @@ class AX25Address(object):
     CALL_RE = re.compile(r'^([0-9A-Z]+)(?:-([0-9]{1,2}))?(\*?)$')
 
     @classmethod
-    def decode(cls, data):
+    def decode(cls, data, ssid=None):
         """
         Decode an AX.25 address from a frame.
         """
@@ -1450,9 +1450,13 @@ class AX25Address(object):
             match = cls.CALL_RE.match(data.upper())
             if not match:
                 raise ValueError('Not a valid SSID: %s' % data)
+
+            if ssid is None:
+                ssid = int(match.group(2) or 0)
+
             return cls(
                     callsign=match.group(1),
-                    ssid=int(match.group(2) or 0),
+                    ssid=ssid,
                     ch=match.group(3) == '*'
             )
         elif isinstance(data, AX25Address):
