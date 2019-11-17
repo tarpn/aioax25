@@ -1257,12 +1257,15 @@ class AX25FrameHeader(object):
             destination=addresses[0],
             source=addresses[1],
             repeaters=addresses[2:],
-            cr=addresses[0].ch
+            cr=addresses[0].ch,
+            # Legacy AX.25 1.x stations set the C bits identically
+            legacy=addresses[0].ch is addresses[1].ch
         ), data)
 
     def __init__(self, destination, source, repeaters=None,
-            cr=False):
+            cr=False, legacy=False):
         self._cr = bool(cr)
+        self._legacy = bool(legacy)
         self._destination = AX25Address.decode(destination)
         self._source = AX25Address.decode(source)
         self._repeaters = AX25Path(*(repeaters or []))
@@ -1281,7 +1284,13 @@ class AX25FrameHeader(object):
         # Extension bit should be 0 if digipeaters follow, 1 otherwise
         # CH bit should be 0 for command, 1 for response
         self._source.extension = not bool(self._repeaters)
-        self._source.ch = not self._cr
+        if self._legacy:
+            # Legacy AX.25 1.x frame, set the C bits identically
+            self._source.ch = self._cr
+        else:
+            # Modern AX.25 2.x frame, set the C bits opposite
+            self._source.ch = not self._cr
+
         for byte in bytes(self._source):
             yield byte
 
@@ -1329,6 +1338,10 @@ class AX25FrameHeader(object):
     @property
     def cr(self):
         return self._cr
+
+    @property
+    def legacy(self):
+        return self._legacy
 
 
 class AX25Path(Sequence):
