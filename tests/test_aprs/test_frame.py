@@ -9,7 +9,6 @@ from aioax25.aprs.message import \
         APRSMessageAckFrame, APRSMessageRejFrame, APRSMessageFrame
 from aioax25.frame import AX25UnnumberedInformationFrame
 
-from ..loop import DummyLoop
 
 def test_decode_wrong_pid():
     """

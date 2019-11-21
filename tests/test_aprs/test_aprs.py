@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-from nose.tools import eq_, assert_set_equal, assert_is, assert_greater, \
-        assert_less
+from nose.tools import eq_, assert_is, assert_greater, assert_less
 
 import logging
 from functools import partial
 from signalslot import Signal
 
 from aioax25.aprs import APRSInterface
-from aioax25.frame import AX25UnnumberedInformationFrame
+from aioax25.frame import AX25UnnumberedInformationFrame, AX25Address
 from aioax25.aprs.message import APRSMessageFrame, APRSMessageHandler
 
 from ..loop import DummyLoop
