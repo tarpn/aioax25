@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 from aioax25.frame import AX25Frame, AX25RawFrame, \
-        AX25UnnumberedInformationFrame, AX258BitReceiveReadyFrame, \
-        AX2516BitReceiveReadyFrame, AX258BitRejectFrame, \
-        AX2516BitRejectFrame
+        AX25UnnumberedInformationFrame
 
 from nose.tools import eq_
 from ..hex import from_hex, hex_cmp
