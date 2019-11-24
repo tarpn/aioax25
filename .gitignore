@@ -3,6 +3,7 @@
 *~
 __pycache__
 .coverage
-coverage/
+aioax25.egg-info/
+cover/
 testreports.xml
 dist/
