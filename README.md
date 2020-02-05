@@ -25,30 +25,28 @@ stack in pure Python.
 
 * Platforms other than GNU/Linux
 
-## Current plans
+## Current plans (updated)
 
-Right now, I intend to get enough going for APRS operation, as that is my
-immediate need now.  Hence the focus on UI frames.
+Focus has been on UI frames.
 
-I intend to write a core class that will take care of some core AX.25 message
-handling work and provide the basis of what's needed to implement APRS.
-
-After that, some things I'd like to tackle in no particular order:
+Write a core class that will take care of some core AX.25 message
+handling work and provide the basis of what's needed to implement:
 
 * Connected mode operation
 * NET/ROM support
 
-Supported platforms will be GNU/Linux, and possibly BSD variants.  I don't
-have access to recent Apple hardware (my 2008-era MacBook will not run
-contemporary MacOS X) so I'm unable to test this software there, but it
-_should_ work nonetheless.
+Note from forked project:
+  Supported platforms will be GNU/Linux, and possibly BSD variants.  I don't
+  have access to recent Apple hardware (my 2008-era MacBook will not run
+  contemporary MacOS X) so I'm unable to test this software there, but it
+  _should_ work nonetheless.
 
-It might work on Windows -- most probably using Cygwin or Subsystem for Linux.
-While I do have a Windows 7 machine handy, life's too short to muck around
-with an OS that can't decide if it's pretending to be Linux, VMS or CP/M.
-There's an abundance of AX.25 stacks and tools for that platform, I'll accept
-patches here on the proviso they don't break things or make the code
-unmaintainable.
+  It might work on Windows -- most probably using Cygwin or Subsystem for Linux.
+  While I do have a Windows 7 machine handy, life's too short to muck around
+  with an OS that can't decide if it's pretending to be Linux, VMS or CP/M.
+  There's an abundance of AX.25 stacks and tools for that platform, I'll accept
+  patches here on the proviso they don't break things or make the code
+  unmaintainable.
 
 ## Usage
 
